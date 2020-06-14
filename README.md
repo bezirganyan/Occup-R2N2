@@ -2,6 +2,8 @@
 
 Hybrid architecture of Occupency Networks and 3D-R2N2 for multiple obejct reconstruction from several RGB images
 
+The code is a fork of https://github.com/AlexsaseXie/occupancy_networks, our contributions are mainly (but not only) in `im2mesh/occupr2n2` folder.
+
 ## Installation
 First you have to make sure that you have all dependencies in place.
 The simplest way to do so, is to use [anaconda](https://www.anaconda.com/). 
