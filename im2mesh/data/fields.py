@@ -23,7 +23,7 @@ class IndexField(Field):
 
     def check_complete(self, files):
         ''' Check if field is complete.
-        
+
         Args:
             files: files
         '''
@@ -44,7 +44,7 @@ class CategoryField(Field):
 
     def check_complete(self, files):
         ''' Check if field is complete.
-        
+
         Args:
             files: files
         '''
@@ -107,7 +107,7 @@ class ImagesField(Field):
 
     def check_complete(self, files):
         ''' Check if field is complete.
-        
+
         Args:
             files: files
         '''
@@ -147,7 +147,7 @@ class MultiImageField(Field):
         folder = os.path.join(model_path, self.folder_name)
         files = glob.glob(os.path.join(folder, '*.%s' % self.extension))
         if self.random_view:
-            choices = range(len(files) - 1)
+            choices = range(len(files))
             idx_img = random.sample(choices, self.n_views)
         else:
             idx_img = list(range(self.n_views))
@@ -185,7 +185,7 @@ class MultiImageField(Field):
 
     def check_complete(self, files):
         ''' Check if field is complete.
-        
+
         Args:
             files: files
         '''
@@ -288,7 +288,7 @@ class VoxelsField(Field):
 
     def check_complete(self, files):
         ''' Check if field is complete.
-        
+
         Args:
             files: files
         '''
@@ -344,7 +344,7 @@ class PointCloudField(Field):
 
     def check_complete(self, files):
         ''' Check if field is complete.
-        
+
         Args:
             files: files
         '''
@@ -392,7 +392,7 @@ class MeshField(Field):
 
     def check_complete(self, files):
         ''' Check if field is complete.
-        
+
         Args:
             files: files
         '''

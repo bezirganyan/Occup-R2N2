@@ -1,7 +1,7 @@
 import yaml
 from torchvision import transforms
 from im2mesh import data
-from im2mesh import onet, r2n2, psgn, pix2mesh, dmc
+from im2mesh import onet, r2n2, psgn, pix2mesh, dmc, occupr2n2
 from im2mesh import onet_m
 from im2mesh import onet_multi_layers_predict
 from im2mesh import preprocess
@@ -15,6 +15,7 @@ method_dict = {
     'dmc': dmc,
     'onet_m': onet_m,
     'onet_multi_layers': onet_multi_layers_predict,
+    'occupr2n2': occupr2n2
 }
 
 
@@ -22,7 +23,7 @@ method_dict = {
 def load_config(path, default_path=None):
     ''' Loads config file.
 
-    Args:  
+    Args:
         path (str): path to config file
         default_path (bool): whether to use default path
     '''
@@ -174,7 +175,7 @@ def get_dataset(mode, cfg, return_idx=False, return_category=False):
         )
     else:
         raise ValueError('Invalid dataset "%s"' % cfg['data']['dataset'])
- 
+
     return dataset
 
 
@@ -187,6 +188,7 @@ def get_inputs_field(mode, cfg):
     '''
     input_type = cfg['data']['input_type']
     with_transforms = cfg['data']['with_transforms']
+    n_views = cfg['data']['n_views']
 
     if input_type is None:
         inputs_field = None
@@ -230,9 +232,9 @@ def get_inputs_field(mode, cfg):
         else:
             random_view = False
 
-        inputs_field = data.ImagesField(
-            cfg['data']['img_folder'], transform,
-            with_camera=with_camera, random_view=random_view
+        inputs_field = data.MultiImageField(
+            cfg['data']['img_folder'], transform=transform,
+            with_camera=with_camera, random_view=random_view, n_views=n_views
         )
     elif input_type == 'pointcloud':
         transform = transforms.Compose([

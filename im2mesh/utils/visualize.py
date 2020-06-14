@@ -17,6 +17,9 @@ def visualize_data(data, data_type, out_file):
         if data.dim() == 3:
             data = data.unsqueeze(0)
         save_image(data, out_file, nrow=4)
+    elif data_type == 'multi_img':
+        for i, d in enumerate(data):
+            save_image(d, out_file.replace('.png', f'{str(i)}.png'), nrow=4)
     elif data_type == 'voxels':
         visualize_voxels(data, out_file=out_file)
     elif data_type == 'pointcloud':
