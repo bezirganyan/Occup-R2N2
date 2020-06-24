@@ -19,6 +19,25 @@ def get_model(cfg, device=None, **kwargs):
     # encoder_kwargs = cfg['model']['encoder_kwargs']
     decoder_kwargs = cfg['model']['decoder_kwargs']
     encoder_kwargs = cfg['model']['encoder_kwargs']
+    batch_size = cfg['training']['batch_size']
+    n_views = cfg['data']['n_views']
+    fc_size = 1024
+    n_convilter = 128
+    n_deconvfilter = 128
+    n_gru_vox = 4
+    conv3d_filter_shape = (n_convilter, n_deconvfilter, 3, 3, 3)
+    h_shape = (batch_size, n_deconvfilter, n_gru_vox, n_gru_vox, n_gru_vox)
+    c_dim = n_deconvfilter*(n_gru_vox**3)
+    if encoder == "3dconvgru":
+        encoder_kwargs = {"batch_size": batch_size,
+                          "fc_size": fc_size,
+                          "n_convilter": n_convilter,
+                          "n_deconvfilter": n_deconvfilter,
+                          "n_gru_vox": n_gru_vox,
+                          "conv3d_filter_shape": conv3d_filter_shape,
+                          "h_shape": h_shape,
+                          "n_views": n_views
+                         }
 
     decoder = models.decoder_dict[decoder](
         dim=dim, c_dim=c_dim,
@@ -30,7 +49,7 @@ def get_model(cfg, device=None, **kwargs):
         **encoder_kwargs
     )
 
-    model = models.R2N2(decoder, encoder)
+    model = models.R2N2(decoder, encoder, h_shape)
     model = model.to(device)
 
     return model
