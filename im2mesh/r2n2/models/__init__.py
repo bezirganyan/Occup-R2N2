@@ -42,8 +42,10 @@ class R2N2(nn.Module):
             input (tensor): the input
         '''
         #initialize the hidden state and update gate
-        h = self.initHidden(self.h_shape)
-        u = self.initHidden(self.h_shape)
+        h_shape = (x.shape[0], *self.h_shape[1:])
+        h = self.initHidden(h_shape)
+        u = self.initHidden(h_shape)
+
 
         #a list used to store intermediate update gate activations
         u_list = []

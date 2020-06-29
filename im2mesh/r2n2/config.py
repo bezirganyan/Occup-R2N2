@@ -107,6 +107,9 @@ def get_data_fields(split, cfg, **kwargs):
             cfg['data']['voxels_file']
         )
     elif split in ('val', 'test'):
+        fields['voxels'] = data.VoxelsField(
+            cfg['data']['voxels_file']
+        )
         fields['points_iou'] = data.PointsField(
             cfg['data']['points_iou_file'],
             with_transforms=with_transforms,

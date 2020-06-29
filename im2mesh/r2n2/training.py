@@ -4,7 +4,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 from im2mesh.training import BaseTrainer
-from im2mesh.common import compute_iou
+from im2mesh.common import compute_iou, make_3d_grid
 from im2mesh.utils import visualize as vis
 from im2mesh.utils.voxels import VoxelGrid
 
@@ -96,32 +96,60 @@ class Trainer(BaseTrainer):
         return eval_dict
 
     def visualize(self, data):
-        ''' Performs an intermidiate visualization.
+        ''' Performs a visualization step for the data.
 
         Args:
             data (dict): data dictionary
         '''
         device = self.device
 
-        occ = data.get('voxels').to(device)
-        inputs = data.get('inputs').to(device)
+        batch_size = data['points'].size(0)
+        inputs = data.get('inputs', torch.empty(batch_size, 0)).to(device)
 
+        shape = (32, 32, 32)
+        p = make_3d_grid([-0.5] * 3, [0.5] * 3, shape).to(device)
+        p = p.expand(batch_size, *p.size())
+
+        kwargs = {}
         with torch.no_grad():
-            occ_logits = self.model(inputs).squeeze(1)
+            p_r = self.model(p, inputs, sample=self.eval_sample, **kwargs)
 
-        occ_hat = torch.sigmoid(occ_logits)
-        voxels_gt = (occ >= self.threshold).cpu().numpy()
+        occ_hat = p_r.probs.view(batch_size, *shape)
         voxels_out = (occ_hat >= self.threshold).cpu().numpy()
 
-        batch_size = occ.size(0)
         for i in trange(batch_size):
             input_img_path = os.path.join(self.vis_dir, '%03d_in.png' % i)
             vis.visualize_data(
                 inputs[i].cpu(), self.input_type, input_img_path)
             vis.visualize_voxels(
                 voxels_out[i], os.path.join(self.vis_dir, '%03d.png' % i))
-            vis.visualize_voxels(
-                voxels_gt[i], os.path.join(self.vis_dir, '%03d_gt.png' % i))
+#    def visualize(self, data):
+#        ''' Performs an intermidiate visualization.
+#
+#        Args:
+#            data (dict): data dictionary
+#        '''
+#        device = self.device
+#
+#        occ = data.get('voxels').to(device)
+#        inputs = data.get('inputs').to(device)
+#
+#        with torch.no_grad():
+#            occ_logits = self.model(inputs).squeeze(1)
+#
+#        occ_hat = torch.sigmoid(occ_logits)
+#        voxels_gt = (occ >= self.threshold).cpu().numpy()
+#        voxels_out = (occ_hat >= self.threshold).cpu().numpy()
+#
+#        batch_size = occ.size(0)
+#        for i in trange(batch_size):
+#            input_img_path = os.path.join(self.vis_dir, '%03d_in.png' % i)
+#            vis.visualize_data(
+#                inputs[i].cpu(), self.input_type, input_img_path)
+#            vis.visualize_voxels(
+#                voxels_out[i], os.path.join(self.vis_dir, '%03d.png' % i))
+#            vis.visualize_voxels(
+#                voxels_gt[i], os.path.join(self.vis_dir, '%03d_gt.png' % i))
 
     def compute_loss(self, occ, inputs=None):
         ''' Computes the loss.
