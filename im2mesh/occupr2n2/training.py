@@ -100,7 +100,12 @@ class Trainer(BaseTrainer):
         occ_iou_np = (occ_iou >= 0.5).cpu().numpy()
         occ_iou_hat_np = (p_out.probs >= threshold).cpu().numpy()
         iou = compute_iou(occ_iou_np, occ_iou_hat_np).mean()
+
+        occ_iou_hat_np_04 = (p_out.probs >= 0.4).cpu().numpy()
+        iou = compute_iou(occ_iou_np, occ_iou_hat_np).mean()
+        iou_04 = compute_iou(occ_iou_np, occ_iou_hat_np_04).mean()
         eval_dict['iou'] = iou
+        eval_dict['iou_04'] = iou_04
 
         # Estimate voxel iou
         if voxels_occ is not None:
@@ -116,9 +121,12 @@ class Trainer(BaseTrainer):
 
             voxels_occ_np = (voxels_occ >= 0.5).cpu().numpy()
             occ_hat_np = (p_out.probs >= threshold).cpu().numpy()
+            occ_hat_np_04 = (p_out.probs >= 0.4).cpu().numpy()
             iou_voxels = compute_iou(voxels_occ_np, occ_hat_np).mean()
+            iou_voxels_04 = compute_iou(voxels_occ_np, occ_hat_np_04).mean()
 
             eval_dict['iou_voxels'] = iou_voxels
+            eval_dict['iou_voxels_04'] = iou_voxels_04
 
         return eval_dict
 
@@ -165,12 +173,15 @@ class Trainer(BaseTrainer):
         kwargs = {}
 
         c = self.model.encode_inputs(inputs)
-        q_z = self.model.infer_z(p, occ, c, **kwargs)
-        z = q_z.rsample()
+        z = None
+        loss = 0
+        if self.model.encoder_latent != None:
+            q_z = self.model.infer_z(p, occ, c, **kwargs)
+            z = q_z.rsample()
 
-        # KL-divergence
-        kl = dist.kl_divergence(q_z, self.model.p0_z).sum(dim=-1)
-        loss = kl.mean()
+            # KL-divergence
+            kl = dist.kl_divergence(q_z, self.model.p0_z).sum(dim=-1)
+            loss = kl.mean()
 
         # General points
         p_r = self.model.decode(p, z, c, **kwargs)

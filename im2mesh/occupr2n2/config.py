@@ -36,7 +36,8 @@ def get_model(cfg, device=None, dataset=None, **kwargs):
     conv3d_filter_shape = (n_convilter, n_deconvfilter, 3, 3, 3)
     h_shape = (batch_size, n_deconvfilter, n_gru_vox, n_gru_vox, n_gru_vox)
     c_dim = n_deconvfilter*(n_gru_vox**3)
-
+    if encoder_latent == None:
+        z_dim = 0
     decoder = models.decoder_dict[decoder](
         dim=dim, z_dim=z_dim, c_dim=c_dim,
         **decoder_kwargs
@@ -52,7 +53,7 @@ def get_model(cfg, device=None, dataset=None, **kwargs):
                           "n_views": n_views
                          }
 
-    if z_dim != 0:
+    if z_dim != 0 and encoder_latent != None:
         encoder_latent = models.encoder_latent_dict[encoder_latent](
             dim=dim, z_dim=z_dim, c_dim=c_dim,
             **encoder_latent_kwargs

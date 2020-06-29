@@ -90,7 +90,9 @@ class OccupR2N2Network(nn.Module):
         p_r = self.decode(p, z, c, **kwargs)
 
         rec_error = -p_r.log_prob(occ).sum(dim=-1)
-        kl = dist.kl_divergence(q_z, self.p0_z).sum(dim=-1)
+        kl = torch.tensor([0.]).cuda()
+        if self.encoder_latent != None:
+            kl = dist.kl_divergence(q_z, self.p0_z).sum(dim=-1)
         elbo = -rec_error - kl
 
         return elbo, rec_error, kl
