@@ -151,6 +151,7 @@ class Trainer(BaseTrainer):
 
         occ_hat = p_r.probs.view(batch_size, *shape)
         voxels_out = (occ_hat >= self.threshold).cpu().numpy()
+        voxels_occ = data.get('voxels')
 
         for i in trange(batch_size):
             input_img_path = os.path.join(self.vis_dir, '%03d_in.png' % i)
@@ -158,6 +159,8 @@ class Trainer(BaseTrainer):
                 inputs[i].cpu(), self.input_type, input_img_path)
             vis.visualize_voxels(
                 voxels_out[i], os.path.join(self.vis_dir, '%03d.png' % i))
+            vis.visualize_voxels(
+                voxels_occ[i], os.path.join(self.vis_dir, '%03d_gt.png' % i))
 
     def compute_loss(self, data):
         ''' Computes the loss.
