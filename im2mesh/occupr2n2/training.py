@@ -149,7 +149,9 @@ class Trainer(BaseTrainer):
         with torch.no_grad():
             p_r = self.model(p, inputs, sample=self.eval_sample, **kwargs)
 
-        occ_hat = p_r.probs.view(batch_size, *shape)
+        occ_hat = p_r.probs.reshape(batch_size,-1, *shape) # TODO - potential error here
+        occ_hat = occ_hat.max(dim=1)[0]
+
         voxels_out = (occ_hat >= self.threshold).cpu().numpy()
         voxels_occ = data.get('voxels')
 
@@ -191,7 +193,8 @@ class Trainer(BaseTrainer):
         logits = p_r.logits
         probs = p_r.probs
         if self.loss_type == 'cross_entropy':
-            loss_i = F.binary_cross_entropy_with_logits(
+            occ = occ.squeeze(0).long()
+            loss_i = F.cross_entropy(
                 logits, occ, reduction='none')
         elif self.loss_type == 'l2':
             logits = F.sigmoid(logits)

@@ -23,6 +23,7 @@ def get_model(cfg, device=None, dataset=None, **kwargs):
     n_views = cfg['data']['n_views']
     z_dim = cfg['model']['z_dim']
     decoder_kwargs = cfg['model']['decoder_kwargs']
+    n_classes = cfg['model']['n_classes']
     encoder_kwargs = cfg['model']['encoder_kwargs']
     encoder_latent_kwargs = cfg['model']['encoder_latent_kwargs']
     batch_size = cfg['training']['batch_size']
@@ -39,7 +40,7 @@ def get_model(cfg, device=None, dataset=None, **kwargs):
     if encoder_latent == None:
         z_dim = 0
     decoder = models.decoder_dict[decoder](
-        dim=dim, z_dim=z_dim, c_dim=c_dim,
+        dim=dim, z_dim=z_dim, c_dim=c_dim, n_classes=n_classes,
         **decoder_kwargs
     )
     if encoder == "3dconvgru":

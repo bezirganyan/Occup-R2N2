@@ -87,7 +87,7 @@ class DecoderCBatchNorm(nn.Module):
     '''
 
     def __init__(self, dim=3, z_dim=128, c_dim=128,
-                 hidden_size=256, leaky=False, legacy=False):
+                 hidden_size=256, leaky=False, legacy=False, n_classes=1):
         super().__init__()
         #print('using sigmoid')
         self.z_dim = z_dim
@@ -106,7 +106,7 @@ class DecoderCBatchNorm(nn.Module):
         else:
             self.bn = CBatchNorm1d_legacy(c_dim, hidden_size)
 
-        self.fc_out = nn.Conv1d(hidden_size, 1, 1)
+        self.fc_out = nn.Conv1d(hidden_size, n_classes, 1)
 
         if not leaky:
             self.actvn = F.relu
@@ -131,7 +131,7 @@ class DecoderCBatchNorm(nn.Module):
         out = self.fc_out(self.actvn(self.bn(net, c)))
         #sigmoid
         #out = F.sigmoid(out)
-        out = out.squeeze(1)
+        out = out.squeeze(1).squeeze(0).T
 
         return out
 
