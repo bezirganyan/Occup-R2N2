@@ -52,9 +52,6 @@ class OccupR2N2Network(nn.Module):
         self._device = device
         self.p0_z = p0_z
 
-
-
-
     def forward(self, p, x, sample=True, **kwargs):
         ''' Performs a forward pass through the network.
 

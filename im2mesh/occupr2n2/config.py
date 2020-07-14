@@ -22,6 +22,7 @@ def get_model(cfg, device=None, dataset=None, **kwargs):
     dim = cfg['data']['dim']
     n_views = cfg['data']['n_views']
     z_dim = cfg['model']['z_dim']
+    instance_loss = cfg['model']['instance_loss']
     decoder_kwargs = cfg['model']['decoder_kwargs']
     n_classes = cfg['model']['n_classes']
     encoder_kwargs = cfg['model']['encoder_kwargs']
@@ -40,7 +41,7 @@ def get_model(cfg, device=None, dataset=None, **kwargs):
     if encoder_latent == None:
         z_dim = 0
     decoder = models.decoder_dict[decoder](
-        dim=dim, z_dim=z_dim, c_dim=c_dim, n_classes=n_classes,
+        dim=dim, z_dim=z_dim, c_dim=c_dim, n_classes=n_classes, instance_loss=instance_loss,
         **decoder_kwargs
     )
     if encoder == "3dconvgru":
@@ -94,6 +95,7 @@ def get_trainer(model, optimizer, cfg, device, **kwargs):
     out_dir = cfg['training']['out_dir']
     vis_dir = os.path.join(out_dir, 'vis')
     input_type = cfg['data']['input_type']
+    instance_loss = cfg['model']['instance_loss']
 
     if 'surface_loss_weight' in cfg['model']:
         surface_loss_weight = cfg['model']['surface_loss_weight']
@@ -117,7 +119,8 @@ def get_trainer(model, optimizer, cfg, device, **kwargs):
         eval_sample=cfg['training']['eval_sample'],
         surface_loss_weight=surface_loss_weight,
         loss_tolerance_episolon=loss_tolerance_episolon,
-        sign_lambda=sign_lambda
+        sign_lambda=sign_lambda,
+        instance_loss=instance_loss
     )
 
     if 'loss_type' in cfg['training']:

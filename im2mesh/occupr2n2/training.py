@@ -28,7 +28,8 @@ class Trainer(BaseTrainer):
                  vis_dir=None, threshold=0.5, eval_sample=False, loss_type='cross_entropy',
                  surface_loss_weight=1.,
                  loss_tolerance_episolon=0.,
-                 sign_lambda=0.
+                 sign_lambda=0.,
+                 instance_loss=False
                 ):
         self.model = model
         self.optimizer = optimizer
@@ -41,6 +42,7 @@ class Trainer(BaseTrainer):
         self.surface_loss_weight = surface_loss_weight
         self.loss_tolerance_episolon = loss_tolerance_episolon
         self.sign_lambda = sign_lambda
+        self.instance_loss = instance_loss
 
         if vis_dir is not None and not os.path.exists(vis_dir):
             os.makedirs(vis_dir)
@@ -53,7 +55,7 @@ class Trainer(BaseTrainer):
         '''
         self.model.train()
         self.optimizer.zero_grad()
-        loss = self.compute_loss(data)
+        loss = self.compute_loss(data, self.instance_loss)
         loss.backward()
         self.optimizer.step()
         return loss.item()
@@ -164,7 +166,7 @@ class Trainer(BaseTrainer):
             vis.visualize_voxels(
                 voxels_occ[i], os.path.join(self.vis_dir, '%03d_gt.png' % i))
 
-    def compute_loss(self, data):
+    def compute_loss(self, data, instance_loss=False, vote_weight=1):
         ''' Computes the loss.
 
         Args:
@@ -189,9 +191,16 @@ class Trainer(BaseTrainer):
             loss = kl.mean()
 
         # General points
-        p_r = self.model.decode(p, z, c, **kwargs)
+        if instance_loss:
+            p_r, vote = self.model.decode(p, z, c, **kwargs)
+        else:
+            p_r = self.model.decode(p, z, c, **kwargs)
         logits = p_r.logits
         probs = p_r.probs
+        if instance_loss:
+            bound_center = data.get('instance_centers').to(device)
+            vote_loss = F.mse_loss(vote, bound_center)
+
         if self.loss_type == 'cross_entropy':
             occ = occ.squeeze(0).long()
             loss_i = F.cross_entropy(
@@ -218,7 +227,8 @@ class Trainer(BaseTrainer):
             w = w * (self.surface_loss_weight - 1) + 1
             loss_i = loss_i * w
 
-        loss = loss + loss_i.sum(-1).mean()
+        print('loss', loss, 'loss_i', loss_i.sum(-1).mean(), 'vote_loss', vote_loss)
+        loss = loss + loss_i.sum(-1).mean() + vote_loss * vote_weight
         #loss = loss_i.sum(-1).mean()
 
         return loss
