@@ -174,21 +174,22 @@ class Trainer(BaseTrainer):
         '''
         device = self.device
         p = data.get('points').to(device)
-        occ = data.get('points.occ').to(device)
+        #occ = data.get('points.occ').to(device)
         inputs = data.get('inputs', torch.empty(p.size(0), 0)).to(device)
+        target = data.get('points.point_lab').to(device)
 
         kwargs = {}
-
+        print('inputs', inputs.shape, p.shape)
         c = self.model.encode_inputs(inputs)
         z = None
         loss = 0
-        if self.model.encoder_latent != None:
-            q_z = self.model.infer_z(p, occ, c, **kwargs)
-            z = q_z.rsample()
+        #if self.model.encoder_latent != None:
+        #    q_z = self.model.infer_z(p, occ, c, **kwargs)
+        #    z = q_z.rsample()
 
-            # KL-divergence
-            kl = dist.kl_divergence(q_z, self.model.p0_z).sum(dim=-1)
-            loss = kl.mean()
+        #    # KL-divergence
+        #    kl = dist.kl_divergence(q_z, self.model.p0_z).sum(dim=-1)
+        #    loss = kl.mean()
 
         # General points
         if instance_loss:
@@ -197,14 +198,15 @@ class Trainer(BaseTrainer):
             p_r = self.model.decode(p, z, c, **kwargs)
         logits = p_r.logits
         probs = p_r.probs
+        vote_loss = 0
         if instance_loss:
             bound_center = data.get('instance_centers').to(device)
             vote_loss = F.mse_loss(vote, bound_center)
 
         if self.loss_type == 'cross_entropy':
-            occ = occ.squeeze(0).long()
+            print(logits.shape, target.shape, '<<<<<<<<<<<<<<<,')
             loss_i = F.cross_entropy(
-                logits, occ, reduction='none')
+                logits, target, reduction='none')
         elif self.loss_type == 'l2':
             logits = F.sigmoid(logits)
             loss_i = torch.pow((logits - occ), 2)

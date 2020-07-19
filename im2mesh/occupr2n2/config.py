@@ -76,7 +76,7 @@ def get_model(cfg, device=None, dataset=None, **kwargs):
 
     p0_z = get_prior_z(cfg, device)
     model = models.OccupR2N2Network(
-        decoder, encoder, encoder_latent, p0_z, h_shape=h_shape, device=device
+        decoder, encoder, encoder_latent, p0_z, h_shape=h_shape, device=device, instance_loss = instance_loss
     )
 
     return model
@@ -177,11 +177,11 @@ def get_data_fields(mode, cfg):
         mode (str): the mode which is used
         cfg (dict): imported yaml config
     '''
-    points_transform = data.SubsamplePoints(cfg['data']['points_subsample'])
+    points_transform = data.MultiSubsamplePoints(cfg['data']['points_subsample'])
     with_transforms = cfg['model']['use_camera']
 
     fields = {}
-    fields['points'] = data.PointsField(
+    fields['points'] = data.MultiPointsField(
         cfg['data']['points_file'], points_transform,
         with_transforms=with_transforms,
         unpackbits=cfg['data']['points_unpackbits'],
@@ -191,7 +191,7 @@ def get_data_fields(mode, cfg):
         points_iou_file = cfg['data']['points_iou_file']
         voxels_file = cfg['data']['voxels_file']
         if points_iou_file is not None:
-            fields['points_iou'] = data.PointsField(
+            fields['points_iou'] = data.MultiPointsField(
                 points_iou_file,
                 with_transforms=with_transforms,
                 unpackbits=cfg['data']['points_unpackbits'],

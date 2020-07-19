@@ -56,6 +56,41 @@ class SubsamplePointcloud(object):
         return data_out
 
 
+class MultiSubsamplePoints(object):
+    ''' Points subsampling transformation class.
+
+    It subsamples the points data.
+
+    Args:
+        N (int): number of points to be subsampled
+    '''
+    def __init__(self, N):
+        self.N = N
+
+    def __call__(self, data):
+        ''' Calls the transformation.
+
+        Args:
+            data (dictionary): data dictionary
+        '''
+        points = data[None]
+
+        data_out = data.copy()
+        if isinstance(self.N, int):
+            x = np.random.randint(points.shape[0], size=self.N)
+            y = np.random.randint(points.shape[1], size=self.N)
+            z = np.random.randint(points.shape[2], size=self.N)
+            lab = points[x, y, z]
+            data_out.update({
+                None: np.vstack([x, y, z]).T / max(points.shape),
+                'point_lab': lab
+            })
+        else:
+            raise ValueError('N shall be an integer')
+
+        return data_out
+
+
 class SubsamplePoints(object):
     ''' Points subsampling transformation class.
 

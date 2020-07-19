@@ -31,8 +31,9 @@ class OccupR2N2Network(nn.Module):
     '''
 
     def __init__(self, decoder, encoder=None, encoder_latent=None, p0_z=None, h_shape=None,
-                 device=None):
+                 device=None, instance_loss=False):
         super().__init__()
+        self.instance_loss = instance_loss
         if p0_z is None:
             p0_z = dist.Normal(torch.tensor([]), torch.tensor([]))
 
@@ -60,6 +61,7 @@ class OccupR2N2Network(nn.Module):
             x (tensor): conditioning input
             sample (bool): whether to sample for z
         '''
+        print(x.shape)
         batch_size = p.size(0)
         c = self.encode_inputs(x)
         z = self.get_z_from_prior((batch_size,), sample=sample)
@@ -132,6 +134,11 @@ class OccupR2N2Network(nn.Module):
             z (tensor): latent code z
             c (tensor): latent conditioned code c
         '''
+
+        if self.instance_loss:
+            logits, vote = self.decoder(p, z, c, **kwargs)
+            p_r = dist.Bernoulli(logits=logits)
+            return p_r, vote
 
         logits = self.decoder(p, z, c, **kwargs)
         p_r = dist.Bernoulli(logits=logits)

@@ -120,8 +120,8 @@ class DecoderCBatchNorm(nn.Module):
             self.actvn = lambda x: F.leaky_relu(x, 0.2)
 
     def forward(self, p, z, c, **kwargs):
-        p = p.transpose(1, 2)
-        batch_size, D, T = p.size()
+        p = p.transpose(1, 2).float()
+        #batch_size, D, T = p.size()
         net = self.fc_p(p)
 
         if self.z_dim != 0:
@@ -136,13 +136,16 @@ class DecoderCBatchNorm(nn.Module):
 
         lgt = self.actvn(self.bn(net, c))
         out = self.fc_out(lgt)
-        vote = self.fc_vote(lgt)
         #sigmoid
         #out = F.sigmoid(out)
-        out = out.squeeze(1).squeeze(0).T
-        vote = vote.squeeze(1).squeeze(0).T
+        out = out.squeeze(1).squeeze(0)
+        if self.instance_loss:
+            vote = self.fc_vote(lgt)
+            vote = vote.squeeze(1).squeeze(0).T
+            return out, vote
 
-        return out, vote
+        print(out.shape)
+        return out
 
 
 class DecoderCBatchNorm2(nn.Module):
