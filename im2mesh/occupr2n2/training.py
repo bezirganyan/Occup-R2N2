@@ -200,11 +200,10 @@ class Trainer(BaseTrainer):
         probs = p_r.probs
         vote_loss = 0
         if instance_loss:
-            bound_center = data.get('instance_centers').to(device)
-            vote_loss = F.mse_loss(vote, bound_center)
+            centers = data.get('points.centers').to(device)
+            vote_loss = (torch.max(vote.float() - centers.T.float(), torch.tensor([0.]).cuda())**2).sum()
 
         if self.loss_type == 'cross_entropy':
-            print(logits.shape, target.shape, '<<<<<<<<<<<<<<<,')
             loss_i = F.cross_entropy(
                 logits, target, reduction='none')
         elif self.loss_type == 'l2':

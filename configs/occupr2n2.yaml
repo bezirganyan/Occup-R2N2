@@ -4,17 +4,17 @@ data:
   path: data/ShapeNet
   classes: null
   input_type: multi_img
-  train_split: train
-  val_split: val
+  train_split: multi_train
+  val_split: multi_val
   test_split: test
   dim: 3
-  points_file: points.npz
-  points_iou_file: points.npz
-  points_subsample: 1024
+  points_file: model_multi.npy
+  points_iou_file: model_multi.npy
+  points_subsample: 256
   points_unpackbits: true
   model_file: model.off
   watertight_file: model_watertight.off
-  img_folder: img_choy2016
+  img_folder: render_128_stable
   img_size: 224
   img_with_camera: false
   img_augment: false
@@ -24,34 +24,36 @@ data:
   pointcloud_n: 256
   pointcloud_target_n: 1024
   pointcloud_noise: 0.05
-  voxels_file: 'model.binvox'
+  voxels_file: 'model_multi.binvox'
   with_transforms: false
   binary_occ: false
 model:
-  decoder: simple
+  decoder: cbatchnorm
   encoder: 3dconvgru
-  encoder_latent: simple
+  encoder_latent: null
   decoder_kwargs: {}
   encoder_kwargs: {}
   encoder_latent_kwargs: {}
+  instance_loss: True
   multi_gpu: false
-  c_dim: 512
-  z_dim: 64
+  c_dim: 128
+  z_dim: 0
   use_camera: false
   dmc_weight_prior: 10.
   decoder_local: batchnorm_localfeature
   decoder_local_kwargs: {}
-  local_feature_dim: 256
+  local_feature_dim: 64
   logits2_ratio: 1.
   logits1_ratio: 1.
   local_feature_mask: false
+  n_classes: 2
 training:
-  out_dir:  out/default
-  batch_size: 1
+  out_dir:  out/final
+  batch_size: 4
   print_every: 10
   visualize_every: 2000
   checkpoint_every: 1000
-  validate_every: 0
+  validate_every: 100
   backup_every: 100000
   eval_sample: false
   model_selection_metric: loss

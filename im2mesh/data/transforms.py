@@ -74,17 +74,21 @@ class MultiSubsamplePoints(object):
             data (dictionary): data dictionary
         '''
         points = data[None]
-
+        centers = data['centers'] / max(points.shape)
         data_out = data.copy()
         if isinstance(self.N, int):
             x = np.random.randint(points.shape[0], size=self.N)
             y = np.random.randint(points.shape[1], size=self.N)
             z = np.random.randint(points.shape[2], size=self.N)
             lab = points[x, y, z]
+            cn = np.take(centers, lab-1, axis=0)
+            cn[lab > 0] = -1
             data_out.update({
                 None: np.vstack([x, y, z]).T / max(points.shape),
-                'point_lab': lab
+                'point_lab': lab,
+                'centers': cn.transpose()
             })
+
         else:
             raise ValueError('N shall be an integer')
 

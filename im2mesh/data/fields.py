@@ -222,8 +222,10 @@ class MultiPointsField(Field):
             category (int): index of category
         '''
         file_path = os.path.join(model_path, self.file_name)
+        cent_path = os.path.join(model_path, 'centers.npy')
 
         points = np.load(file_path)
+        centers = np.load(cent_path)
         #points = points_dict['points']
         # Break symmetry if given in float16:
         #if points.dtype == np.float16:
@@ -238,7 +240,8 @@ class MultiPointsField(Field):
         #occupancies = occupancies.astype(np.float32)
 
         data = {
-            None: points
+            None: points,
+            'centers': centers
         }
 
         #if self.with_transforms:
