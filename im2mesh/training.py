@@ -1,5 +1,6 @@
 # from im2mesh import icp
 import numpy as np
+import torch
 from collections import defaultdict
 from tqdm import tqdm
 

@@ -74,40 +74,53 @@ class Trainer(BaseTrainer):
 
         # Compute elbo
         points = data.get('points').to(device)
-        occ = data.get('points.occ').to(device)
+        #occ = data.get('points.occ').to(device)
 
         inputs = data.get('inputs', torch.empty(points.size(0), 0)).to(device)
         voxels_occ = data.get('voxels')
 
-        points_iou = data.get('points_iou').to(device)
-        occ_iou = data.get('points_iou.occ').to(device)
+        #occ_iou = data.get('points_iou.occ').to(device)
 
         kwargs = {}
 
-        with torch.no_grad():
-            elbo, rec_error, kl = self.model.compute_elbo(
-                points, occ, inputs, **kwargs)
+        #with torch.no_grad():
+        #    elbo, rec_error, kl = self.model.compute_elbo(
+        #        points, occ, inputs, **kwargs)
 
-        eval_dict['loss'] = -elbo.mean().item()
-        eval_dict['rec_error'] = rec_error.mean().item()
-        eval_dict['kl'] = kl.mean().item()
+        target = data.get('points.point_lab').to(device)
+
+#        eval_dict['rec_error'] = rec_error.mean().item()
+#        eval_dict['kl'] = kl.mean().item()
 
         # Compute iou
         batch_size = points.size(0)
 
         with torch.no_grad():
-            p_out = self.model(points_iou, inputs,
+            p_out, vote = self.model(points, inputs,
                                sample=self.eval_sample, **kwargs)
 
-        occ_iou_np = (occ_iou >= 0.5).cpu().numpy()
-        occ_iou_hat_np = (p_out.probs >= threshold).cpu().numpy()
-        iou = compute_iou(occ_iou_np, occ_iou_hat_np).mean()
+        instance_loss = True
+        if instance_loss:
+            centers = data.get('points.centers').to(device)
+            vote_loss = (torch.max(vote.float() - centers.T.float(), torch.tensor([0.]).cuda())**2).sum()
 
-        occ_iou_hat_np_04 = (p_out.probs >= 0.4).cpu().numpy()
+
+        logits = p_out.logits
+        if self.loss_type == 'cross_entropy':
+            loss_i = F.cross_entropy(
+                logits, target, reduction='none')
+        occ_iou_np = (target >= 0).cpu().numpy()
+        occ_iou_hat_np = p_out.probs.argmax(dim=1).cpu().numpy()
+        #iou = compute_iou(occ_iou_np, occ_iou_hat_np).mean()
+
+        #occ_iou_hat_np_04 = (p_out.probs >= 0.4).cpu().numpy()
         iou = compute_iou(occ_iou_np, occ_iou_hat_np).mean()
-        iou_04 = compute_iou(occ_iou_np, occ_iou_hat_np_04).mean()
         eval_dict['iou'] = iou
-        eval_dict['iou_04'] = iou_04
+        
+        #loss = loss_i.sum(-1).mean()
+        loss = loss_i.sum(-1).mean() + vote_loss * 1000
+
+        eval_dict['loss'] = loss.cpu().numpy()
 
         # Estimate voxel iou
         if voxels_occ is not None:
@@ -118,17 +131,14 @@ class Trainer(BaseTrainer):
                 batch_size, *points_voxels.size())
             points_voxels = points_voxels.to(device)
             with torch.no_grad():
-                p_out = self.model(points_voxels, inputs,
+                p_out, vote = self.model(points_voxels, inputs,
                                    sample=self.eval_sample, **kwargs)
 
             voxels_occ_np = (voxels_occ >= 0.5).cpu().numpy()
-            occ_hat_np = (p_out.probs >= threshold).cpu().numpy()
-            occ_hat_np_04 = (p_out.probs >= 0.4).cpu().numpy()
+            occ_hat_np = p_out.probs.argmax(dim=1).cpu().numpy()
             iou_voxels = compute_iou(voxels_occ_np, occ_hat_np).mean()
-            iou_voxels_04 = compute_iou(voxels_occ_np, occ_hat_np_04).mean()
 
             eval_dict['iou_voxels'] = iou_voxels
-            eval_dict['iou_voxels_04'] = iou_voxels_04
 
         return eval_dict
 
@@ -149,13 +159,17 @@ class Trainer(BaseTrainer):
 
         kwargs = {}
         with torch.no_grad():
-            p_r = self.model(p, inputs, sample=self.eval_sample, **kwargs)
+            p_r, vote = self.model(p, inputs, sample=self.eval_sample, **kwargs)
 
-        occ_hat = p_r.probs.reshape(batch_size,-1, *shape) # TODO - potential error here
-        occ_hat = occ_hat.max(dim=1)[0]
+       # occ_hat = p_r.probs.reshape(batch_size,-1, *shape) # TODO - potential error here
+       # occ_hat = occ_hat.max(dim=1)[0]
+        occ_hat = p_r.probs.argmax(dim=1).cpu().numpy()
+        voxels_out = occ_hat > 0
 
-        voxels_out = (occ_hat >= self.threshold).cpu().numpy()
+        #voxels_out = (occ_hat >= self.threshold).cpu().numpy()
         voxels_occ = data.get('voxels')
+        voxels_out = voxels_out.reshape(voxels_occ.shape)
+    
 
         for i in trange(batch_size):
             input_img_path = os.path.join(self.vis_dir, '%03d_in.png' % i)
@@ -166,7 +180,7 @@ class Trainer(BaseTrainer):
             vis.visualize_voxels(
                 voxels_occ[i], os.path.join(self.vis_dir, '%03d_gt.png' % i))
 
-    def compute_loss(self, data, instance_loss=False, vote_weight=1):
+    def compute_loss(self, data, instance_loss=False, vote_weight=1000):
         ''' Computes the loss.
 
         Args:
@@ -179,7 +193,6 @@ class Trainer(BaseTrainer):
         target = data.get('points.point_lab').to(device)
 
         kwargs = {}
-        print('inputs', inputs.shape, p.shape)
         c = self.model.encode_inputs(inputs)
         z = None
         loss = 0
@@ -228,8 +241,9 @@ class Trainer(BaseTrainer):
             w = w * (self.surface_loss_weight - 1) + 1
             loss_i = loss_i * w
 
-        print('loss', loss, 'loss_i', loss_i.sum(-1).mean(), 'vote_loss', vote_loss)
+        #print('loss', loss, 'loss_i', loss_i.sum(-1).mean(), 'vote_loss', vote_loss)
         loss = loss + loss_i.sum(-1).mean() + vote_loss * vote_weight
         #loss = loss_i.sum(-1).mean()
 
         return loss
+
